@@ -1,7 +1,7 @@
 package authenticator
 
 import (
-	"github.com/chiyoi/oncorhynchus/internal/oncorhynchus/authenticator/verify"
+	"github.com/chiyoi/oncorhynchus/internal/app/oncorhynchus/authenticator/verify"
 	"github.com/chiyoi/oncorhynchus/pkg/sakana"
 )
 
