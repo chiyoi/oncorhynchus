@@ -1,0 +1,13 @@
+#!/usr/local/bin/python3.9
+import time
+s = "なちょ世界一可愛い！"
+timedelta = 0.2
+duration = 2
+start = timestamp = time.time()
+while timestamp - start <= duration:
+    now = time.time()
+    if now - timestamp >= timedelta:
+        timestamp = now
+        s = s[1:] + s[0]
+        print("\r", s * 2, end = '')
+print()
