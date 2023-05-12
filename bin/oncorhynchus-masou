@@ -1,13 +1,11 @@
 #!/bin/zsh
 
-# data
 clear=false
 board="000000000"
 chosen=0
 steps=0
 timestamp=0
 
-# text
 init() {
     board="100000000"
     timestamp=$(date +%s)
@@ -95,7 +93,6 @@ getCommand() {
     chosen=$(expr $p0 + $p1 '*' 3)
 }
 
-# main
 echo "Welcome."
 echo 
 echo "Summary: There're 3*3 grids, each has two states, showing 0 or 1. Like this:"
