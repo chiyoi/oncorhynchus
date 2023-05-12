@@ -64,6 +64,7 @@ func (cg *CommandGroup) Usage() {
 
 	if len(cg.welcome) != 0 {
 		fmt.Fprintln(cg.Output(), cg.welcome)
+		fmt.Fprintln(cg.Output())
 	}
 
 	fmt.Fprintf(cg.Output(), "usage: %s\n", cg.usage.usage)

@@ -22,17 +22,6 @@ type Command struct {
 	work func()
 }
 
-type option struct {
-	names       []string
-	required    bool
-	description string
-}
-
-type example struct {
-	usage       string
-	description string
-}
-
 func NewCommand(name string, usage string, description string) (c *Command) {
 	fs := flag.NewFlagSet(name, flag.ExitOnError)
 	c = &Command{FlagSet: fs, usage: example{usage, description}}
@@ -69,6 +58,7 @@ func (c *Command) Usage() {
 
 	if len(c.welcome) != 0 {
 		fmt.Fprintln(c.Output(), c.welcome)
+		fmt.Fprintln(c.Output())
 	}
 
 	fmt.Fprintf(c.Output(), "usage: %s\n", c.usage.usage)
