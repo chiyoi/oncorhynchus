@@ -1,47 +1,45 @@
-package trinity
+package auth
 
 import (
 	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"os/exec"
 	"runtime"
 
-	"github.com/chiyoi/go/pkg/az/auth"
+	"github.com/chiyoi/go/pkg/az/authentication"
 	"github.com/chiyoi/go/pkg/logs"
 	"github.com/chiyoi/go/pkg/neko"
+	"github.com/chiyoi/oncorhynchus/internal/app/trinity/common/data"
 	"github.com/chiyoi/oncorhynchus/internal/app/trinity/config"
 )
 
-var (
-	Scopes = []string{"User.Read", "offline_access"}
-)
-
 func Login() (err error) {
-	u, err := url.Parse(config.AzureADRedirectURI)
+	u, err := url.Parse(config.AzureADLoginRedirectURI)
 	if err != nil {
 		return
 	}
 
-	ch := make(chan auth.Token)
+	ch := make(chan authentication.Token)
 
 	srv := &http.Server{
 		Addr: fmt.Sprintf(":%v", u.Port()),
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			code, err := auth.GetCode(r)
+			code, err := authentication.GetCode(r)
 			if err != nil {
 				logs.Warning(err)
 				neko.InternalServerError(w, "Login failed.")
 				return
 			}
 
-			token, err := auth.RedeemCode(code, auth.Endpoint{
+			token, err := authentication.RedeemCode(code, authentication.Endpoint{
 				Token: config.EndpointMicrosoftIdentityToken,
-			}, auth.Config{
+			}, authentication.Config{
 				ClientID:    config.AzureADClientID,
-				Scopes:      Scopes,
-				RedirectURI: config.AzureADRedirectURI,
+				Scopes:      config.AzureADLoginScopes,
+				RedirectURI: config.AzureADLoginRedirectURI,
 			})
 			if err != nil {
 				logs.Warning(err)
@@ -59,12 +57,12 @@ func Login() (err error) {
 
 	switch runtime.GOOS {
 	case "darwin":
-		err = exec.Command("open", auth.LoginURL(auth.Endpoint{
+		err = exec.Command("open", authentication.LoginURL(authentication.Endpoint{
 			Authorization: config.EndpointMicrosoftIdentityAuthorize,
-		}, auth.Config{
+		}, authentication.Config{
 			ClientID:    config.AzureADClientID,
-			Scopes:      Scopes,
-			RedirectURI: config.AzureADRedirectURI,
+			Scopes:      config.AzureADLoginScopes,
+			RedirectURI: config.AzureADLoginRedirectURI,
 		})).Start()
 	default:
 		err = errors.New("unsupported platform")
@@ -74,6 +72,19 @@ func Login() (err error) {
 	}
 
 	token := <-ch
-	config.Data.SetToken(token)
+	data.SetToken(token)
 	return
+}
+
+func Refresh(token authentication.Token) authentication.Token {
+	token, err := authentication.Refresh(token.RefreshToken, authentication.Endpoint{
+		Token: config.EndpointMicrosoftIdentityToken,
+	}, authentication.Config{
+		ClientID: config.AzureADClientID,
+	})
+	if err != nil {
+		fmt.Println("error while refreshing token:", err)
+		os.Exit(1)
+	}
+	return token
 }

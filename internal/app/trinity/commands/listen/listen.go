@@ -3,6 +3,7 @@ package listen
 import (
 	"context"
 	"flag"
+	"fmt"
 	"net/http"
 	"net/url"
 
@@ -10,6 +11,8 @@ import (
 	"github.com/chiyoi/go/pkg/logs"
 	"github.com/chiyoi/go/pkg/sakana"
 	"github.com/chiyoi/go/pkg/trinity"
+	"github.com/chiyoi/oncorhynchus/internal/app/trinity/common/auth"
+	"github.com/chiyoi/oncorhynchus/internal/app/trinity/common/data"
 	"github.com/chiyoi/oncorhynchus/internal/app/trinity/config"
 )
 
@@ -43,7 +46,23 @@ func Handler() sakana.Handler {
 
 func Work(*flag.FlagSet) {
 	ch := make(chan trinity.Message)
-	go pollUpdate()
+	token := data.Data.Token
+	if token.Expired() {
+		token = auth.Refresh(token)
+		data.SetToken(token)
+	}
+
+	go pollUpdate(token.AccessToken, ch)
+
+	for m := range ch {
+		// TODO: print name and timestamp
+		for _, p := range m.Content {
+			switch p.Type {
+			case trinity.ParagraphTypeText:
+				fmt.Println(p.Data)
+			}
+		}
+	}
 }
 
 func pollUpdate(token string, ch chan<- trinity.Message) {
