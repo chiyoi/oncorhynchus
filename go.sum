@@ -1,0 +1,8 @@
+github.com/chiyoi/go v0.0.1 h1:KLwZW1A+sS1zMklENmrlxR6ck0ymNIWxyP2cyYn7y7U=
+github.com/chiyoi/go v0.0.1/go.mod h1:B4VzcYCiNfOtpd7yGDY1rzE07nH5CeDOlRyPaCd7OSA=
+github.com/chiyoi/go v0.0.2 h1:887ZgvhrMAOAl2qC0oPTEAmzDzEYvzHDEr2n+R3muHM=
+github.com/chiyoi/go v0.0.2/go.mod h1:B4VzcYCiNfOtpd7yGDY1rzE07nH5CeDOlRyPaCd7OSA=
+github.com/chiyoi/go v0.1.0 h1:/Zx6+T96l+44/srXdFnIufXj/O4Rc1OGfU+6/wBYP98=
+github.com/chiyoi/go v0.1.0/go.mod h1:B4VzcYCiNfOtpd7yGDY1rzE07nH5CeDOlRyPaCd7OSA=
+github.com/google/uuid v1.3.0 h1:t6JiXgmwXMjEs8VusXIJk2BXHsn+wx8BZdTaoZ5fu7I=
+github.com/google/uuid v1.3.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
