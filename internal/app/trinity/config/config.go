@@ -15,8 +15,9 @@ const (
 )
 
 var (
-	AzureADClientID    = "e5a68652-2fed-4508-ad85-02e7a966307f"
-	AzureADRedirectURI = "http://localhost:10123"
+	AzureADClientID         = "e5a68652-2fed-4508-ad85-02e7a966307f"
+	AzureADLoginRedirectURI = "http://localhost:10123"
+	AzureADLoginScopes      = []string{"User.Read", "offline_access"}
 )
 
 var (
@@ -24,13 +25,14 @@ var (
 
 	EndpointNeko03 = "https://api.neko03.moe/"
 
-	PathData = func() string {
+	DirData = func() string {
 		u, err := user.Current()
 		if err != nil {
 			logs.Panic(err)
 		}
-		return filepath.Join(u.HomeDir, ".oncorhynchus", "trinity.json")
+		return filepath.Join(u.HomeDir, ".oncorhynchus", "trinity")
 	}()
+	PathData = filepath.Join(DirData, "data.json")
 )
 
 func init() {

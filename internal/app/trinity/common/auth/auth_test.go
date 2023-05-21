@@ -1,4 +1,4 @@
-package trinity
+package auth
 
 import "testing"
 
