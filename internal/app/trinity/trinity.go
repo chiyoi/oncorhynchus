@@ -1,8 +1,11 @@
 package trinity
 
 import (
+	"fmt"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 
 	"github.com/chiyoi/go/pkg/logs"
 	"github.com/chiyoi/go/pkg/sakana"
@@ -18,10 +21,19 @@ const (
 )
 
 func Main() {
+	logs.SetOutput(LogFile())
+
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, syscall.SIGTERM, syscall.SIGINT)
+	go func() {
+		s := <-sig
+		logs.Info("signaled")
+		fmt.Println("Stop.")
+		logs.Fatal("stop:", s)
+	}()
+
 	data.Load()
 	defer data.Save()
-
-	logs.SetOutput(LogFile())
 
 	c := Command()
 	c.ServeArgs(os.Args[1:])
@@ -37,7 +49,7 @@ func Command() *sakana.Command {
 func LogFile() *os.File {
 	f, err := os.Create(filepath.Join(config.DirData, "log.txt"))
 	if err != nil {
-		logs.Fatal("cannot create log file")
+		logs.Panic("cannot create log file")
 	}
 	return f
 }

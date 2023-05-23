@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"os"
 	"os/exec"
 	"runtime"
 
@@ -17,6 +16,7 @@ import (
 )
 
 func Login() (err error) {
+	logs.Info("login")
 	u, err := url.Parse(config.AzureADLoginRedirectURI)
 	if err != nil {
 		return
@@ -73,18 +73,22 @@ func Login() (err error) {
 
 	token := <-ch
 	data.SetToken(token)
+	logs.Info("login succeeded")
 	return
 }
 
 func Refresh(token authentication.Token) authentication.Token {
+	logs.Info("refreshing token")
 	token, err := authentication.Refresh(token.RefreshToken, authentication.Endpoint{
 		Token: config.EndpointMicrosoftIdentityToken,
 	}, authentication.Config{
 		ClientID: config.AzureADClientID,
 	})
 	if err != nil {
-		fmt.Println("error while refreshing token:", err)
-		os.Exit(1)
+		logs.Error(err)
+		fmt.Println("Failed to authenticate.")
+		logs.Fatal("exit")
 	}
+	logs.Info("token refreshed")
 	return token
 }
