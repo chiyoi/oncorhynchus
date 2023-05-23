@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/chiyoi/go/pkg/kitsune"
 	"github.com/chiyoi/go/pkg/logs"
@@ -52,9 +53,12 @@ func Work(*flag.FlagSet) {
 		data.SetToken(token)
 	}
 
+	logs.Info("start listener")
+	fmt.Println("Start listener.")
 	go pollUpdate(token.AccessToken, ch)
 
 	for m := range ch {
+		logs.Info("received message:", m.ID)
 		// TODO: print name and timestamp
 		for _, p := range m.Content {
 			switch p.Type {
@@ -67,20 +71,27 @@ func Work(*flag.FlagSet) {
 
 func pollUpdate(token string, ch chan<- trinity.Message) {
 	header := http.Header{}
-	header.Set("Authorization", "Bearer "+token)
+	header.Set("Authorization", "Bearer "+token) // FIXME: not working.
 	c := kitsune.Client{
 		Endpoint: EndpointPollUpdate,
 		Header:   header,
 	}
 
+	fc := 0
 	for {
 		logs.Info("polling update")
 		var m trinity.Message
 		if err := c.RoundTrip(context.Background(), nil, &m); err != nil {
+			if fc++; fc > 3 {
+				logs.Error("too many polling failures")
+				fmt.Println("Internal error.")
+				logs.Fatal("exit")
+			}
 			logs.Warning(err)
+			time.Sleep(time.Second)
 			continue
 		}
-
+		fc = 0
 		logs.Info("received update")
 		ch <- m
 	}
