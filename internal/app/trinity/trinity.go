@@ -3,15 +3,14 @@ package trinity
 import (
 	"fmt"
 	"os"
-	"os/signal"
 	"path/filepath"
-	"syscall"
 
 	"github.com/chiyoi/go/pkg/logs"
 	"github.com/chiyoi/go/pkg/sakana"
 	"github.com/chiyoi/oncorhynchus/internal/app/trinity/commands/listen"
-	"github.com/chiyoi/oncorhynchus/internal/app/trinity/common/data"
+	"github.com/chiyoi/oncorhynchus/internal/app/trinity/commands/post"
 	"github.com/chiyoi/oncorhynchus/internal/app/trinity/config"
+	"github.com/chiyoi/oncorhynchus/internal/app/trinity/data"
 )
 
 const (
@@ -21,16 +20,20 @@ const (
 )
 
 func Main() {
-	logs.SetOutput(LogFile())
+	f, clean := LogFile()
+	defer clean()
 
-	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, syscall.SIGTERM, syscall.SIGINT)
-	go func() {
-		s := <-sig
-		logs.Info("signaled")
-		fmt.Println("Stop.")
-		logs.Fatal("stop:", s)
-	}()
+	logs.SetOutput(f)
+	logs.SetPrefix(fmt.Sprintf("[%d] ", os.Getpid()))
+
+	// sig := make(chan os.Signal, 1)
+	// signal.Notify(sig, syscall.SIGTERM, syscall.SIGINT)
+	// go func() {
+	// 	s := <-sig
+	// 	logs.Info("stop:", s)
+	// 	fmt.Println("Stop.")
+	// 	os.Exit(0)
+	// }()
 
 	data.Load()
 	defer data.Save()
@@ -43,13 +46,15 @@ func Command() *sakana.Command {
 	c := sakana.NewCommand(Name, Usage, Description)
 	c.Welcome("Nyan~")
 	c.Command(listen.Command())
+	c.Command(post.Command())
 	return c
 }
 
-func LogFile() *os.File {
-	f, err := os.Create(filepath.Join(config.DirData, "log.txt"))
+func LogFile() (f *os.File, clean func()) {
+	f, err := os.OpenFile(filepath.Join(config.DirData, "log.txt"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
-		logs.Panic("cannot create log file")
+		logs.Error("cannot create log file")
+		sakana.InternalError()
 	}
-	return f
+	return f, func() { f.Close() }
 }

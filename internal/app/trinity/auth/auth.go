@@ -11,8 +11,8 @@ import (
 	"github.com/chiyoi/go/pkg/az/authentication"
 	"github.com/chiyoi/go/pkg/logs"
 	"github.com/chiyoi/go/pkg/neko"
-	"github.com/chiyoi/oncorhynchus/internal/app/trinity/common/data"
 	"github.com/chiyoi/oncorhynchus/internal/app/trinity/config"
+	"github.com/chiyoi/oncorhynchus/internal/app/trinity/data"
 )
 
 func Login() (err error) {

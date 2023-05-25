@@ -4,34 +4,24 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"net/http"
-	"net/url"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/chiyoi/go/pkg/kitsune"
 	"github.com/chiyoi/go/pkg/logs"
 	"github.com/chiyoi/go/pkg/sakana"
 	"github.com/chiyoi/go/pkg/trinity"
-	"github.com/chiyoi/oncorhynchus/internal/app/trinity/common/auth"
-	"github.com/chiyoi/oncorhynchus/internal/app/trinity/common/data"
+	"github.com/chiyoi/oncorhynchus/internal/app/trinity/auth"
 	"github.com/chiyoi/oncorhynchus/internal/app/trinity/config"
+	"github.com/chiyoi/oncorhynchus/internal/app/trinity/data"
 )
 
 const (
 	Name        = "listen"
 	Usage       = "listen"
 	Description = "Listen to new messages."
-)
-
-var (
-	EndpointPollUpdate = func() string {
-		u, err := url.Parse(config.EndpointNeko03)
-		if err != nil {
-			logs.Panic(err)
-		}
-
-		return u.JoinPath("/trinity/fetch/update").String()
-	}()
 )
 
 func Command() (name string, h sakana.Handler, usage string) {
@@ -46,7 +36,7 @@ func Handler() sakana.Handler {
 }
 
 func Work(*flag.FlagSet) {
-	ch := make(chan trinity.Message)
+	ch := make(chan namedMessage)
 	token := data.Data.Token
 	if token.Expired() {
 		token = auth.Refresh(token)
@@ -55,11 +45,15 @@ func Work(*flag.FlagSet) {
 
 	logs.Info("start listener")
 	fmt.Println("Start listener.")
-	go pollUpdate(token.AccessToken, ch)
+	go PollUpdate(token.AccessToken, ch)
 
 	for m := range ch {
 		logs.Info("received message:", m.ID)
-		// TODO: print name and timestamp
+		fmt.Printf("%s (%s) - %s",
+			m.SenderName.DisplayName,
+			m.SenderName.UserPrincipalName,
+			time.Unix(m.Timestamp, 0).UTC().Format(time.RFC822),
+		)
 		for _, p := range m.Content {
 			switch p.Type {
 			case trinity.ParagraphTypeText:
@@ -69,30 +63,61 @@ func Work(*flag.FlagSet) {
 	}
 }
 
-func pollUpdate(token string, ch chan<- trinity.Message) {
-	header := http.Header{}
-	header.Set("Authorization", "Bearer "+token) // FIXME: not working.
-	c := kitsune.Client{
-		Endpoint: EndpointPollUpdate,
-		Header:   header,
-	}
-
+func PollUpdate(token string, ch chan<- namedMessage) {
 	fc := 0
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, syscall.SIGTERM, syscall.SIGINT)
+	go func() {
+		s := <-sig
+		logs.Info("stop:", s)
+		cancel()
+	}()
+
+loop:
 	for {
+		select {
+		case <-ctx.Done():
+			fmt.Println("Stop.")
+			close(ch)
+			break loop
+		default:
+		}
+		time.Sleep(time.Second)
 		logs.Info("polling update")
-		var m trinity.Message
-		if err := c.RoundTrip(context.Background(), nil, &m); err != nil {
+		var resp neko03ResponseFetch
+		if err := (&kitsune.Client{Endpoint: endpointPollUpdate()}).RoundTrip(ctx, nil, &resp); err != nil {
 			if fc++; fc > 3 {
 				logs.Error("too many polling failures")
-				fmt.Println("Internal error.")
-				logs.Fatal("exit")
+				sakana.InternalError()
 			}
 			logs.Warning(err)
-			time.Sleep(time.Second)
 			continue
 		}
 		fc = 0
 		logs.Info("received update")
-		ch <- m
+		for _, m := range resp.Messages {
+			ch <- m
+		}
 	}
+}
+
+func endpointPollUpdate() string {
+	return config.EndpointAuthedNeko03(
+		data.Data.Token.AccessToken,
+	).JoinPath(
+		"/trinity/fetch/update",
+	).String()
+}
+
+type namedMessage struct {
+	trinity.Message
+	SenderName trinity.Name `json:"sender_name"`
+}
+
+type neko03ResponseFetch struct {
+	Messages []namedMessage `json:"messages"`
 }
