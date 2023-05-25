@@ -1,12 +1,14 @@
 package config
 
 import (
+	"net/url"
 	"os"
 	"os/user"
 	"path/filepath"
 	"time"
 
 	"github.com/chiyoi/go/pkg/logs"
+	"github.com/chiyoi/go/pkg/sakana"
 )
 
 const (
@@ -24,6 +26,7 @@ var (
 	Timeout = time.Second * 20
 
 	EndpointNeko03 = "https://api.neko03.moe/"
+	QueryKeyToken  = "token"
 
 	DirData = func() string {
 		u, err := user.Current()
@@ -39,4 +42,17 @@ func init() {
 	if err := os.MkdirAll(filepath.Dir(PathData), 0700); err != nil {
 		logs.Panic(err)
 	}
+}
+
+func EndpointAuthedNeko03(token string) (u *url.URL) {
+	u, err := url.Parse(EndpointNeko03)
+	if err != nil {
+		logs.Error(err)
+		sakana.InternalError()
+	}
+
+	q := u.Query()
+	q.Set(QueryKeyToken, token)
+	u.RawQuery = q.Encode()
+	return
 }
