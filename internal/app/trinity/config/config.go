@@ -25,7 +25,7 @@ var (
 var (
 	Timeout = time.Second * 20
 
-	EndpointNeko03 = "https://api.neko03.moe/"
+	EndpointNeko03 = "https://neko03.redriver-a01bf37e.japaneast.azurecontainerapps.io/"
 	QueryKeyToken  = "token"
 
 	DirData = func() string {

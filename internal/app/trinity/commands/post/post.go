@@ -2,6 +2,7 @@ package post
 
 import (
 	"flag"
+	"fmt"
 
 	"github.com/chiyoi/go/pkg/kitsune"
 	"github.com/chiyoi/go/pkg/logs"
@@ -28,11 +29,13 @@ func Handler() sakana.Handler {
 	text := c.FlagSet.String("t", "", "")
 	c.FlagSet.StringVar(text, "text", "", "")
 	c.OptionUsage([]string{"t", "text"}, true, "Text to post.")
+
 	c.Work(func(fs *flag.FlagSet) {
 		if *text == "" {
 			logs.Warning("empty text")
 			sakana.UsageError("Empty text.", fs.Usage)
 		}
+
 		req := neko03RequestPost{
 			Content: []trinity.Paragraph{
 				trinity.Text(*text),
@@ -43,6 +46,7 @@ func Handler() sakana.Handler {
 			sakana.InternalError()
 			return
 		}
+		fmt.Println("Posted.")
 	})
 	return c
 }
