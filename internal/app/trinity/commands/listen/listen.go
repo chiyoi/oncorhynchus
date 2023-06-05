@@ -2,8 +2,10 @@ package listen
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -36,71 +38,85 @@ func Handler() sakana.Handler {
 }
 
 func Work(*flag.FlagSet) {
-	ch := make(chan namedMessage)
-	token := data.Data.Token
-	if token.Expired() {
-		token = auth.Refresh(token)
-		data.SetToken(token)
+	if data.Data.Token.Expired() {
+		data.SetToken(auth.Refresh(data.Data.Token))
 	}
 
-	logs.Info("start listener")
-	fmt.Println("Start listener.")
-	go PollUpdate(token.AccessToken, ch)
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 
-	for m := range ch {
-		logs.Info("received message:", m.ID)
-		fmt.Printf("%s (%s) - %s",
-			m.SenderName.DisplayName,
-			m.SenderName.UserPrincipalName,
-			time.Unix(m.Timestamp, 0).UTC().Format(time.RFC822),
-		)
-		for _, p := range m.Content {
-			switch p.Type {
-			case trinity.ParagraphTypeText:
-				fmt.Println(p.Data)
+	token := data.Data.Token.AccessToken
+	errorCount := 0
+
+	logs.Info("start listener")
+	fmt.Println("Listening.")
+	for func() bool {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		go func() {
+			select {
+			case <-ctx.Done():
+			case s := <-sig:
+				logs.Info("stop:", s)
+				cancel()
+			}
+		}()
+
+		ms, err := PollUpdate(ctx, token)
+		if err != nil {
+			var re *kitsune.ResponseError
+			if errors.As(err, &re) && re.StatusCode == http.StatusGatewayTimeout {
+				logs.Info("polling timeout")
+				return true
+			}
+
+			select {
+			case <-ctx.Done():
+				fmt.Print("Canceled.")
+				return false
+			default:
+				logs.Warning(err)
+				if errorCount++; errorCount > 3 {
+					logs.Error("too many errors")
+					sakana.InternalError()
+				}
+				return true
 			}
 		}
+
+		errorCount = 0
+		for _, m := range ms {
+			PrintMessage(m)
+		}
+		return true
+	}() {
 	}
 }
 
-func PollUpdate(token string, ch chan<- namedMessage) {
-	fc := 0
+func PollUpdate(ctx context.Context, token string) (ms []namedMessage, err error) {
+	logs.Info("polling update")
+	var resp neko03ResponseFetch
+	if err = (&kitsune.Client{Endpoint: endpointPollUpdate()}).RoundTrip(ctx, nil, &resp); err != nil {
+		return
+	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	logs.Info("received update")
+	return resp.Messages, nil
+}
 
-	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, syscall.SIGTERM, syscall.SIGINT)
-	go func() {
-		s := <-sig
-		logs.Info("stop:", s)
-		cancel()
-	}()
+func PrintMessage(m namedMessage) {
+	logs.Info("received message:", m.ID)
+	fmt.Printf("%s (%s) - %s\n",
+		m.SenderName.DisplayName,
+		m.SenderName.UserPrincipalName,
+		time.UnixMilli(m.Timestamp).UTC().Format(time.RFC822),
+	)
 
-loop:
-	for {
-		select {
-		case <-ctx.Done():
-			fmt.Println("Stop.")
-			close(ch)
-			break loop
-		default:
-		}
-		time.Sleep(time.Second)
-		logs.Info("polling update")
-		var resp neko03ResponseFetch
-		if err := (&kitsune.Client{Endpoint: endpointPollUpdate()}).RoundTrip(ctx, nil, &resp); err != nil {
-			if fc++; fc > 3 {
-				logs.Error("too many polling failures")
-				sakana.InternalError()
-			}
-			logs.Warning(err)
-			continue
-		}
-		fc = 0
-		logs.Info("received update")
-		for _, m := range resp.Messages {
-			ch <- m
+	for _, p := range m.Content {
+		switch p.Type {
+		case trinity.ParagraphTypeText:
+			fmt.Println(p.Data)
 		}
 	}
 }
