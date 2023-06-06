@@ -26,15 +26,6 @@ func Main() {
 	logs.SetOutput(f)
 	logs.SetPrefix(fmt.Sprintf("[%d] ", os.Getpid()))
 
-	// sig := make(chan os.Signal, 1)
-	// signal.Notify(sig, syscall.SIGTERM, syscall.SIGINT)
-	// go func() {
-	// 	s := <-sig
-	// 	logs.Info("stop:", s)
-	// 	fmt.Println("Stop.")
-	// 	os.Exit(0)
-	// }()
-
 	data.Load()
 	defer data.Save()
 
