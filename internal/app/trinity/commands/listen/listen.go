@@ -26,7 +26,7 @@ const (
 	Description = "Listen to new messages."
 )
 
-func Command() (name string, h sakana.Handler, usage string) {
+func Command() (name string, h sakana.Handler, description string) {
 	return Name, Handler(), Description
 }
 
