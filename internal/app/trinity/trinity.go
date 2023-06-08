@@ -1,6 +1,7 @@
 package trinity
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -38,6 +39,12 @@ func Command() *sakana.Command {
 	c.Welcome("Nyan~")
 	c.Command(listen.Command())
 	c.Command(post.Command())
+
+	c.Work(func(fs *flag.FlagSet) {
+		if fs.NArg() <= 0 {
+			sakana.UsageError("Subcommand is needed.", fs.Usage)
+		}
+	})
 	return c
 }
 
