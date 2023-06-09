@@ -21,6 +21,12 @@ const (
 )
 
 func Main() {
+	defer func() {
+		if err := recover(); err != nil {
+			os.Exit(1)
+		}
+	}()
+
 	f, clean := LogFile()
 	defer clean()
 
