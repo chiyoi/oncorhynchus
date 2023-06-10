@@ -31,7 +31,8 @@ func Main() {
 	defer clean()
 
 	logs.SetOutput(f)
-	logs.SetPrefix(fmt.Sprintf("[%d] ", os.Getpid()))
+	sakana.SetOutput(f)
+	logs.PrependPrefix(fmt.Sprintf("[%d] ", os.Getpid()))
 
 	data.Load()
 	defer data.Save()
