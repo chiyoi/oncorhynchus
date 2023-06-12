@@ -1,8 +1,8 @@
 package trinity
 
 import (
-	"flag"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -31,27 +31,29 @@ func Main() {
 	defer clean()
 
 	logs.SetOutput(f)
-	sakana.SetOutput(f)
+	sakana.SetLogFile(f)
 	logs.PrependPrefix(fmt.Sprintf("[%d] ", os.Getpid()))
 
 	data.Load()
 	defer data.Save()
 
 	c := Command()
-	c.ServeArgs(os.Args[1:])
+	c.ServeArgs(nil, os.Args[1:])
 }
 
-func Command() *sakana.Command {
-	c := sakana.NewCommand(Name, Usage, Description)
+func Command() (c *sakana.Command) {
+	c = sakana.NewCommand(Name)
+
 	c.Welcome("Nyan~")
+	c.Summary(Usage, Description)
 	c.Command(listen.Command())
 	c.Command(post.Command())
 
-	c.Work(func(fs *flag.FlagSet) {
-		if fs.NArg() <= 0 {
-			sakana.UsageError("Subcommand is needed.", fs.Usage)
+	c.Work(sakana.HandlerFunc(func(w io.Writer, args []string) {
+		if len(args) == 0 {
+			sakana.UsageError(w, "Subcommand is needed.\n"+c.Usage())
 		}
-	})
+	}))
 	return c
 }
 
@@ -59,7 +61,7 @@ func LogFile() (f *os.File, clean func()) {
 	f, err := os.OpenFile(filepath.Join(config.DirData, "log.txt"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
 		logs.Error("cannot create log file")
-		sakana.InternalError()
+		sakana.InternalError(os.Stderr)
 	}
 	return f, func() { f.Close() }
 }
