@@ -25,6 +25,7 @@ func Command() (name string, description string, h sakana.Handler) {
 func Handler() sakana.Handler {
 	c := sakana.NewCommand(Name)
 	c.Welcome("command: trinity post")
+	c.Summary(Usage, Description)
 
 	text := c.FlagSet.String("t", "", "")
 	c.FlagSet.StringVar(text, "text", "", "")
