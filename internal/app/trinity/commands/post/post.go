@@ -1,8 +1,8 @@
 package post
 
 import (
-	"flag"
 	"fmt"
+	"io"
 
 	"github.com/chiyoi/go/pkg/kitsune"
 	"github.com/chiyoi/go/pkg/logs"
@@ -18,22 +18,22 @@ const (
 	Description = "Post a text message."
 )
 
-func Command() (name string, h sakana.Handler, description string) {
-	return Name, Handler(), Description
+func Command() (name string, description string, h sakana.Handler) {
+	return Name, Description, Handler()
 }
 
 func Handler() sakana.Handler {
-	c := sakana.NewCommand(Name, Usage, Description)
+	c := sakana.NewCommand(Name)
 	c.Welcome("command: trinity post")
 
 	text := c.FlagSet.String("t", "", "")
 	c.FlagSet.StringVar(text, "text", "", "")
 	c.OptionUsage([]string{"t", "text"}, true, "Text to post.")
 
-	c.Work(func(fs *flag.FlagSet) {
+	c.Work(sakana.HandlerFunc(func(w io.Writer, args []string) {
 		if *text == "" {
 			logs.Warning("empty text")
-			sakana.UsageError("Empty text.", fs.Usage)
+			sakana.UsageError(w, "Empty text.\n"+c.Usage())
 		}
 
 		req := neko03RequestPost{
@@ -43,11 +43,10 @@ func Handler() sakana.Handler {
 		}
 		if err := kitsune.RoundTrip(endpointPost(), req, nil); err != nil {
 			logs.Error("post failed:", err)
-			sakana.InternalError()
-			return
+			sakana.InternalError(w)
 		}
-		fmt.Println("Posted.")
-	})
+		fmt.Fprintln(w, "Posted.")
+	}))
 	return c
 }
 

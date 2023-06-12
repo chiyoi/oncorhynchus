@@ -3,8 +3,8 @@ package listen
 import (
 	"context"
 	"errors"
-	"flag"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/signal"
@@ -26,72 +26,72 @@ const (
 	Description = "Listen to new messages."
 )
 
-func Command() (name string, h sakana.Handler, description string) {
-	return Name, Handler(), Description
+func Command() (name, description string, h sakana.Handler) {
+	return Name, Description, Handler()
 }
 
 func Handler() sakana.Handler {
-	c := sakana.NewCommand(Name, Usage, Description)
+	c := sakana.NewCommand(Name)
 	c.Welcome("command: trinity listen")
-	c.Work(Work)
-	return c
-}
+	c.Summary(Usage, Description)
 
-func Work(*flag.FlagSet) {
-	if data.Data.Token.Expired() {
-		data.SetToken(auth.Refresh(data.Data.Token))
-	}
+	c.Work(sakana.HandlerFunc(func(w io.Writer, _ []string) {
+		if data.Data.Token.Expired() {
+			data.SetToken(auth.Refresh(data.Data.Token))
+		}
 
-	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+		sig := make(chan os.Signal, 1)
+		signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 
-	token := data.Data.Token.AccessToken
-	errorCount := 0
+		token := data.Data.Token.AccessToken
+		errorCount := 0
 
-	logs.Info("start listener")
-	fmt.Println("Listening.")
-	for func() bool {
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
+		logs.Info("start listener")
+		fmt.Fprintln(w, "Listening.")
+		for func() bool {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
 
-		go func() {
-			select {
-			case <-ctx.Done():
-			case s := <-sig:
-				logs.Info("stop:", s)
-				cancel()
-			}
-		}()
-
-		ms, err := PollUpdate(ctx, token)
-		if err != nil {
-			var re *kitsune.ResponseError
-			if errors.As(err, &re) && re.StatusCode == http.StatusGatewayTimeout {
-				logs.Info("polling timeout")
-				return true
-			}
-
-			select {
-			case <-ctx.Done():
-				fmt.Print("Canceled.")
-				return false
-			default:
-				logs.Warning(err)
-				if errorCount++; errorCount > 3 {
-					logs.Error("too many errors")
-					sakana.InternalError()
+			go func() {
+				select {
+				case <-ctx.Done():
+				case s := <-sig:
+					logs.Info("stop:", s)
+					cancel()
 				}
-				return true
-			}
-		}
+			}()
 
-		errorCount = 0
-		for _, m := range ms {
-			PrintMessage(m)
+			ms, err := PollUpdate(ctx, token)
+			if err != nil {
+				var re *kitsune.ResponseError
+				if errors.As(err, &re) && re.StatusCode == http.StatusGatewayTimeout {
+					logs.Info("polling timeout")
+					return true
+				}
+
+				select {
+				case <-ctx.Done():
+					fmt.Fprint(w, "Canceled.")
+					return false
+				default:
+					logs.Warning(err)
+					if errorCount++; errorCount > 3 {
+						logs.Error("too many errors")
+						sakana.InternalError(w)
+					}
+					return true
+				}
+			}
+
+			errorCount = 0
+			for _, m := range ms {
+				PrintMessage(w, m)
+			}
+			return true
+		}() {
 		}
-		return true
-	}() {
-	}
+	}))
+	return c
 }
 
 func PollUpdate(ctx context.Context, token string) (ms []namedMessage, err error) {
@@ -105,18 +105,24 @@ func PollUpdate(ctx context.Context, token string) (ms []namedMessage, err error
 	return resp.Messages, nil
 }
 
-func PrintMessage(m namedMessage) {
+func PrintMessage(w io.Writer, m namedMessage) {
 	logs.Info("received message:", m.ID)
-	fmt.Printf("%s (%s) - %s\n",
+	if _, err := fmt.Fprintf(w, "%s (%s) - %s\n",
 		m.SenderName.DisplayName,
 		m.SenderName.UserPrincipalName,
 		time.UnixMilli(m.Timestamp).UTC().Format(time.RFC822),
-	)
+	); err != nil {
+		logs.Error(err)
+		sakana.InternalError(w)
+	}
 
 	for _, p := range m.Content {
 		switch p.Type {
 		case trinity.ParagraphTypeText:
-			fmt.Println(p.Data)
+			if _, err := fmt.Fprintln(w, p.Data); err != nil {
+				logs.Error(err)
+				sakana.InternalError(w)
+			}
 		}
 	}
 }

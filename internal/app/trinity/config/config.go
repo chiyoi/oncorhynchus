@@ -48,7 +48,7 @@ func EndpointAuthedNeko03(token string) (u *url.URL) {
 	u, err := url.Parse(EndpointNeko03)
 	if err != nil {
 		logs.Error(err)
-		sakana.InternalError()
+		sakana.InternalError(os.Stderr)
 	}
 
 	q := u.Query()
