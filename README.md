@@ -1,5 +1,4 @@
 # Oncorhynchus
-Terminal applications.
+シュア〜
 - oncorhynchus-masou: A little console game.
-- パイモン/派蒙: 最高の仲間！
-* trinity: The command-line interface for *Trinity* service.
+- パイモン: 最高の仲間！
