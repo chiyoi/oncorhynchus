@@ -1,0 +1,204 @@
+#!/usr/bin/env sh
+board=""
+
+answer="00000000"
+cube="00000000"
+proj=""
+
+steps=0
+start_time=$(date +%s)
+over=0
+
+set_level() {
+    # $1: level number
+    if test $1 = 1; then
+    answer="10001000"
+    cube="00000001"
+    else
+    echo "Internal Error: (Unexpected level number.) $1"
+    fi
+}
+
+show_board() {
+    cuc() {
+        # cut cube
+        # $1: position
+        echo $cube | cut -c$1
+    }
+    
+    cup() {
+        # cut proj
+        # $1: position
+        echo $answer | cut -c$1
+    }
+    
+    bit_or() {
+        # $1: arg1
+        # $2: arg2
+        expr $1 '|' $2
+    }
+
+    proj=''
+    proj+=$(bit_or $(cuc 1) $(cuc 3))
+    proj+=$(bit_or $(cuc 2) $(cuc 4))
+    proj+=$(bit_or $(cuc 5) $(cuc 7))
+    proj+=$(bit_or $(cuc 6) $(cuc 8))
+    proj+=$(bit_or $(cuc 1) $(cuc 2))
+    proj+=$(bit_or $(cuc 3) $(cuc 4))
+    proj+=$(bit_or $(cuc 5) $(cuc 6))
+    proj+=$(bit_or $(cuc 7) $(cuc 8))
+
+    board=""
+    board+="  $(cup '1-2')            \n"
+    board+=" $(cup '3-4')             \n"
+    board+="    a $(cuc '1-2')    $(cup 5)   \n"
+    board+="   b $(cuc '5-6') $(cuc '3-4') $(cuc 7)  $(cup 6) \n"
+    board+="    c  $(cuc '7-8')    $(cup 8)  \n"
+    board+="      d  ef     \n"
+    echo "$board"
+}
+
+get_input() {
+    cuc() {
+        # cut cube
+        # $1: position
+        echo $cube | cut -c$1
+    }
+    
+    read_input() {
+        echo "Input: \c"
+        read inp
+    }
+    
+    is_cw() {
+        test $dir = cw
+    }
+
+    read_input
+    err_count=0
+    while test -z "$(echo $inp | cut -c1 | grep -Ex '[abcdef]')" || test -z "$(echo $inp | cut -c2-4 | grep -Ex 'cw|ccw')"; do
+    echo "Invalid input."
+    err_count=$(expr $err_count + 1)
+    if test $err_count -gt 3; then
+    echo "Too many errors."
+    exit 1
+    fi
+    read_input
+    done
+
+    layer=$(echo $inp | cut -c1)
+    dir=$(echo $inp | cut -c2-4)
+    if test $layer = a; then
+    if is_cw; then
+    cube=$(cuc 3)$(cuc 1)$(cuc 4)$(cuc 2)$(cuc '5-8')
+    else
+    cube=$(cuc 2)$(cuc 4)$(cuc 1)$(cuc 3)$(cuc '5-8')
+    fi
+    elif test $layer = b; then
+    if is_cw; then
+    cube=$(cuc '1-4')$(cuc 7)$(cuc 5)$(cuc 8)$(cuc 6)
+    else
+    cube=$(cuc '1-4')$(cuc 6)$(cuc 8)$(cuc 5)$(cuc 7)
+    fi
+    elif test $layer = c; then
+    if is_cw; then
+    cube=$(cuc 5)$(cuc 1)$(cuc '3-4')$(cuc 6)$(cuc 2)$(cuc '7-8')
+    else
+    cube=$(cuc 2)$(cuc 6)$(cuc '3-4')$(cuc 1)$(cuc 5)$(cuc '7-8')
+    fi
+    elif test $layer = d; then
+    if is_cw; then
+    cube=$(cuc '1-2')$(cuc 7)$(cuc 3)$(cuc '5-6')$(cuc 8)$(cuc 4)
+    else
+    cube=$(cuc '1-2')$(cuc 4)$(cuc 8)$(cuc '5-6')$(cuc 3)$(cuc 7)
+    fi
+    elif test $layer = e; then
+    if is_cw; then
+    cube=$(cuc 5)$(cuc 2)$(cuc 1)$(cuc 4)$(cuc 7)$(cuc 6)$(cuc 3)$(cuc 8)
+    else
+    cube=$(cuc 3)$(cuc 2)$(cuc 7)$(cuc 4)$(cuc 1)$(cuc 6)$(cuc 5)$(cuc 8)
+    fi
+    elif test $layer = f; then
+    if is_cw; then
+    cube=$(cuc 1)$(cuc 6)$(cuc 3)$(cuc 2)$(cuc 5)$(cuc 8)$(cuc 7)$(cuc 4)
+    else
+    cube=$(cuc 1)$(cuc 4)$(cuc 3)$(cuc 8)$(cuc 5)$(cuc 2)$(cuc 7)$(cuc 6)
+    fi
+    fi
+
+    steps=$(expr $steps + 1)
+}
+
+check_state() {
+    if test $proj = $answer; then
+    over=1
+    fi
+}
+
+any_key() {
+    echo "Continue...\c"
+    read
+}
+
+echo "Cube: Match The Projection of The Cube."
+echo "Implemented the logic of one of the little games in Star Rail."
+any_key
+echo
+echo "We have a cube consists of 8 blocks:"
+echo "  00   "
+echo " 00 00 "
+echo "   00  "
+any_key
+echo
+echo "We can mark each layer with a character:"
+echo "  a 00    "
+echo " b 00 00  "
+echo "  c  00   "
+echo "    d  ef "
+any_key
+echo
+echo "Each layer is:"
+echo "          |          |    00    "
+echo "  a 00    | b 00     |   00     "
+echo "      00  |     00   |  c       "
+echo "          |          |          "
+echo "----------|----------|----------"
+echo "          |    0     |     0    "
+echo "      00  |   0  0   |    0  0  "
+echo "     00   |     0    |      0   "
+echo "    d     |       e  |        f "
+any_key
+echo
+echo "We can choose a layer and rotate it either clockwise (cw) or counterclockwise (ccw)."
+echo 'For example, we choose layer `a` and rotate it clockwise, we can input `acw`.'
+echo "  a 10              a 01    "
+echo ' b 00 00   `acw`   b 00 00  '
+echo "  c  00   ------->  c  00   "
+echo "    d  ef             d  ef "
+any_key
+echo
+echo "We also have two projections, for the left and right sides of the cube:"
+echo "  00            "
+echo " 00             "
+echo "    a 00    0   "
+echo "   b 00 00 0  0 "
+echo "    c  00    0  "
+echo "      d  ef     "
+any_key
+echo
+echo "Our goal is to match the cube with its projection."
+echo "Game Start."
+any_key
+echo
+
+set_level 1
+show_board
+while test $over -ne 1; do
+get_input
+show_board
+check_state
+done
+
+echo "Done."
+echo "Steps: $steps"
+echo "Time: $(expr $(date +%s) - $start_time)s"
