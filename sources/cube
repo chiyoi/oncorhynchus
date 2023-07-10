@@ -62,19 +62,9 @@ show_board() {
 }
 
 get_input() {
-    cuc() {
-        # cut cube
-        # $1: position
-        echo $cube | cut -c$1
-    }
-    
     read_input() {
         echo "Input: \c"
         read inp
-    }
-    
-    is_cw() {
-        test $dir = cw
     }
 
     read_input
@@ -91,6 +81,17 @@ get_input() {
 
     layer=$(echo $inp | cut -c1)
     dir=$(echo $inp | cut -c2-4)
+
+    cuc() {
+        # cut cube
+        # $1: position
+        echo $cube | cut -c$1
+    }
+    
+    is_cw() {
+        test $dir = cw
+    }
+
     if test $layer = a; then
     if is_cw; then
     cube=$(cuc 3)$(cuc 1)$(cuc 4)$(cuc 2)$(cuc '5-8')
@@ -139,6 +140,11 @@ check_state() {
 }
 
 help() {
+    any_key() {
+        echo "Continue...\c"
+        read
+    }
+
     echo "We have a cube consists of 8 blocks:"
     echo "  00   "
     echo " 00 00 "
@@ -186,11 +192,6 @@ help() {
     echo "Our goal is to match the cube with its projection."
 }
 
-any_key() {
-    echo "Continue...\c"
-    read
-}
-
 while test $# -gt 0; do
 if test $1 = -level; then
 level=$2
@@ -200,6 +201,11 @@ skip_help=1
 fi
 shift
 done
+
+any_key() {
+    echo "Continue...\c"
+    read
+}
 
 echo "Cube: Match The Projection of The Cube."
 echo "Implemented the logic of one of the little games in Star Rail."
