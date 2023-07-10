@@ -6,16 +6,19 @@ cube="00000000"
 proj=""
 
 steps=0
-start_time=$(date +%s)
+start_time=0
 over=0
 
+skip_help=0
+level=0
+
 set_level() {
-    # $1: level number
-    if test $1 = 1; then
+    if test $level = 1; then
+    answer="11001100"
+    cube="10100100"
+    else
     answer="10001000"
     cube="00000001"
-    else
-    echo "Internal Error: (Unexpected level number.) $1"
     fi
 }
 
@@ -135,63 +138,80 @@ check_state() {
     fi
 }
 
+help() {
+    echo "We have a cube consists of 8 blocks:"
+    echo "  00   "
+    echo " 00 00 "
+    echo "   00  "
+    any_key
+    echo
+    echo "We can mark each layer with a character:"
+    echo "  a 00    "
+    echo " b 00 00  "
+    echo "  c  00   "
+    echo "    d  ef "
+    any_key
+    echo
+    echo "Each layer is:"
+    echo "|----------|----------|----------|"
+    echo "|  a 00    |          |    00    |"
+    echo "|      00  | b 00     |   00     |"
+    echo "|          |     00   |  c       |"
+    echo "|          |          |          |"
+    echo "|----------|----------|----------|"
+    echo "|          |    0     |     0    |"
+    echo "|      00  |   0  0   |    0  0  |"
+    echo "|     00   |     0    |      0   |"
+    echo "|    d     |       e  |        f |"
+    echo "|----------|----------|----------|"
+    any_key
+    echo
+    echo "We can choose a layer and rotate it either clockwise (cw) or counterclockwise (ccw)."
+    echo 'For example, we choose layer `a` and rotate it clockwise, we can input `acw`.'
+    echo "  a 10              a 01    "
+    echo ' b 00 00   `acw`   b 00 00  '
+    echo "  c  00   ------->  c  00   "
+    echo "    d  ef             d  ef "
+    any_key
+    echo
+    echo "We also have two projections, to the back and right surfaces of the cube:"
+    echo "  00            "
+    echo " 00             "
+    echo "    a 00    0   "
+    echo "   b 00 00 0  0 "
+    echo "    c  00    0  "
+    echo "      d  ef     "
+    any_key
+    echo
+    echo "Our goal is to match the cube with its projection."
+}
+
 any_key() {
     echo "Continue...\c"
     read
 }
 
+while test $# -gt 0; do
+if test $1 = -level; then
+level=$2
+shift
+elif test $1 = -skip-help; then
+skip_help=1
+fi
+shift
+done
+
 echo "Cube: Match The Projection of The Cube."
 echo "Implemented the logic of one of the little games in Star Rail."
 any_key
 echo
-echo "We have a cube consists of 8 blocks:"
-echo "  00   "
-echo " 00 00 "
-echo "   00  "
-any_key
-echo
-echo "We can mark each layer with a character:"
-echo "  a 00    "
-echo " b 00 00  "
-echo "  c  00   "
-echo "    d  ef "
-any_key
-echo
-echo "Each layer is:"
-echo "          |          |    00    "
-echo "  a 00    | b 00     |   00     "
-echo "      00  |     00   |  c       "
-echo "          |          |          "
-echo "----------|----------|----------"
-echo "          |    0     |     0    "
-echo "      00  |   0  0   |    0  0  "
-echo "     00   |     0    |      0   "
-echo "    d     |       e  |        f "
-any_key
-echo
-echo "We can choose a layer and rotate it either clockwise (cw) or counterclockwise (ccw)."
-echo 'For example, we choose layer `a` and rotate it clockwise, we can input `acw`.'
-echo "  a 10              a 01    "
-echo ' b 00 00   `acw`   b 00 00  '
-echo "  c  00   ------->  c  00   "
-echo "    d  ef             d  ef "
-any_key
-echo
-echo "We also have two projections, for the left and right sides of the cube:"
-echo "  00            "
-echo " 00             "
-echo "    a 00    0   "
-echo "   b 00 00 0  0 "
-echo "    c  00    0  "
-echo "      d  ef     "
-any_key
-echo
-echo "Our goal is to match the cube with its projection."
+test $skip_help -eq 0 && help
 echo "Game Start."
 any_key
 echo
 
-set_level 1
+start_time=$(date +%s)
+set_level
 show_board
 while test $over -ne 1; do
 get_input
