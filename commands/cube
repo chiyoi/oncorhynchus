@@ -4,7 +4,7 @@ usage() {
     echo
     echo "Usage: cube [-level|-l <level>] [-tips|-t]"
     echo "Options:"
-    echo "    -level, -l - Choose level. (default: 0)"
+    echo "    -level, -l - Choose level. (levels: 0, 1) (default: 0)"
     echo "    -tips, -t  - Show the game tips."
 }
 
@@ -80,12 +80,24 @@ get_input() {
     read_input
     err_count=0
     while test -z "$(echo $inp | cut -c1 | grep -Ex '[abcdef]')" || test -z "$(echo $inp | cut -c2-4 | grep -Ex 'cw|ccw')"; do
-    echo "Invalid input."
     err_count=$(expr $err_count + 1)
-    if test $err_count -gt 3; then
-    echo "Too many errors."
+    echo "Unrecognized input: $inp"
+    case $err_count in
+    1)
+    echo "We can choose a layer and rotate it either clockwise (cw) or counterclockwise (ccw)."
+    echo 'For example, we choose layer `a` and rotate it clockwise, we can input `acw`.'
+    ;;
+    2)
+    echo '` (Backtick) is not part of the input.'
+    ;;
+    3)
+    echo "We can hit <ctrl-c> to exit."
+    ;;
+    *)
+    echo "Too much errors."
     exit 1
-    fi
+    ;;
+    esac
     read_input
     done
 
@@ -156,7 +168,7 @@ any_key() {
 
 welcome() {
     echo "Cube: Match The Projection of The Cube."
-    echo "Principle comes from one of the little games in Star Rail."
+    echo "Idea comes from one of the little games in Star Rail."
 }
 
 tips() {
@@ -196,9 +208,9 @@ tips() {
     echo "We can choose a layer and rotate it either clockwise (cw) or counterclockwise (ccw)."
     echo 'For example, we choose layer `a` and rotate it clockwise, we can input `acw`.'
     echo "   a                 a      "
-    echo "  b 10              b 01    "
-    echo '   00 00   `acw`     00 00  '
-    echo "  c  00   ------->  c  00   "
+    echo '  b 10     `acw`    b 01    '
+    echo "   00 00  ------->   00 00  "
+    echo "  c  00             c  00   "
     echo "    d  ef             d  ef "
     any_key
     echo
@@ -214,7 +226,6 @@ tips() {
     echo "Our goal is to match the cube with its projection."
     any_key
     echo "----"
-    echo
 }
 
 case $1 in
@@ -244,8 +255,8 @@ done
 
 welcome
 any_key
-echo
 $show_tips && tips
+echo
 echo "Game Start."
 any_key
 

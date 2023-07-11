@@ -8,8 +8,8 @@ usage() {
 }
 
 install() {
-	test -d ~/bin || mkdir ~/bin
-	cp -f cmd/*  ~/bin
+	test -d ~/bin || mkdir ~/bin || return
+	cp -f commands/*  ~/bin || return
 	echo "Scripts installed~"
 	echo "Add to PATH:"
     path
