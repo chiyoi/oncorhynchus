@@ -2,13 +2,11 @@
 usage() {
     welcome
     echo
-    echo "Usage: cube [-level|-l <level>] [-skip-help|-s]"
+    echo "Usage: cube [-level|-l <level>] [-tips|-t]"
     echo "Options:"
-    echo "    -level, -l     - Choose level. (default: 0)"
-    echo "    -skip-help, -s - Skip displaying help messages."
+    echo "    -level, -l - Choose level. (default: 0)"
+    echo "    -tips, -t  - Show the game tips."
 }
-
-board=""
 
 answer="00000000"
 cube="00000000"
@@ -16,19 +14,22 @@ proj=""
 
 steps=0
 start_time=0
-over=0
+over=false
 
-skip_help=0
+show_tips=false
 level=0
 
 set_level() {
-    if test $level = 1; then
+    case $level in
+    1)
     answer="11001100"
     cube="10100100"
-    else
+    ;;
+    *)
     answer="10001000"
     cube="00000001"
-    fi
+    ;;
+    esac
 }
 
 show_board() {
@@ -60,16 +61,13 @@ show_board() {
     proj+=$(bit_or $(cuc 5) $(cuc 6))
     proj+=$(bit_or $(cuc 7) $(cuc 8))
 
-    board=""
-    board+="  $(cup '1-2')            \n"
-    board+=" $(cup '3-4')  a          \n"
-    board+="    b $(cuc '1-2')    $(cup 5)   \n"
-    board+="     $(cuc '5-6') $(cuc '3-4') $(cuc 7)  $(cup 6) \n"
-    board+="    c  $(cuc '7-8')    $(cup 8)  \n"
-    board+="      d  ef     "
-
     echo
-    echo "$board"
+    echo "  $(cup '1-2')            "
+    echo " $(cup '3-4')  a          "
+    echo "    b $(cuc '1-2')    $(cup 5)   "
+    echo "     $(cuc '5-6') $(cuc '3-4') $(cuc 7)  $(cup 6) "
+    echo "    c  $(cuc '7-8')    $(cup 8)  "
+    echo "      d  ef   "
     echo
 }
 
@@ -147,7 +145,7 @@ get_input() {
 
 check_state() {
     if test $proj = $answer; then
-    over=1
+    over=true
     fi
 }
 
@@ -158,10 +156,13 @@ any_key() {
 
 welcome() {
     echo "Cube: Match The Projection of The Cube."
-    echo "Implemented the logic of one of the little games in Star Rail."
+    echo "Principle comes from one of the little games in Star Rail."
 }
 
-help() {
+tips() {
+    echo "----"
+    echo "Tips:"
+    echo
     echo "We have a cube consists of 8 blocks:"
     echo "  00   "
     echo " 00 00 "
@@ -211,9 +212,12 @@ help() {
     any_key
     echo
     echo "Our goal is to match the cube with its projection."
+    any_key
+    echo "----"
+    echo
 }
 
-case "$1" in
+case $1 in
 -h|-help|--help)
 usage
 exit
@@ -222,12 +226,12 @@ esac
 
 while test $# -gt 0; do
 case $1 in
--l|-level|--level)
+-l|-level)
 level=$2
 shift
 ;;
--s|-skip-help|--skip-help)
-skip_help=1
+-t|-tips)
+show_tips=true
 ;;
 *)
 echo "Unknown option: $1"
@@ -241,19 +245,19 @@ done
 welcome
 any_key
 echo
-test $skip_help -eq 0 && help
+$show_tips && tips
 echo "Game Start."
 any_key
 
-start_time=$(date +%s)
 set_level
+start_time=$(date +%s)
 show_board
-while test $over -ne 1; do
+while ! $over; do
 get_input
 show_board
 check_state
 done
 
-echo "Done."
+echo "Passed."
 echo "Steps: $steps"
 echo "Time: $(expr $(date +%s) - $start_time)s"
