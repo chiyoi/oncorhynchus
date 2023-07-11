@@ -62,12 +62,15 @@ show_board() {
 
     board=""
     board+="  $(cup '1-2')            \n"
-    board+=" $(cup '3-4')             \n"
-    board+="    a $(cuc '1-2')    $(cup 5)   \n"
-    board+="   b $(cuc '5-6') $(cuc '3-4') $(cuc 7)  $(cup 6) \n"
+    board+=" $(cup '3-4')  a          \n"
+    board+="    b $(cuc '1-2')    $(cup 5)   \n"
+    board+="     $(cuc '5-6') $(cuc '3-4') $(cuc 7)  $(cup 6) \n"
     board+="    c  $(cuc '7-8')    $(cup 8)  \n"
-    board+="      d  ef     \n"
+    board+="      d  ef     "
+
+    echo
     echo "$board"
+    echo
 }
 
 get_input() {
@@ -166,19 +169,22 @@ help() {
     any_key
     echo
     echo "We can mark each layer with a character:"
-    echo "  a 00    "
-    echo " b 00 00  "
+    echo "   a      "
+    echo "  b 00    "
+    echo "   00 00  "
     echo "  c  00   "
     echo "    d  ef "
     any_key
     echo
     echo "Each layer is:"
     echo "|----------|----------|----------|"
-    echo "|  a 00    |          |    00    |"
-    echo "|      00  | b 00     |   00     |"
+    echo "|   a      |          |          |"
+    echo "|    00    |  b       |    00    |"
+    echo "|      00  |   00     |   00     |"
     echo "|          |     00   |  c       |"
     echo "|          |          |          |"
     echo "|----------|----------|----------|"
+    echo "|          |          |          |"
     echo "|          |    0     |     0    |"
     echo "|      00  |   0  0   |    0  0  |"
     echo "|     00   |     0    |      0   |"
@@ -188,17 +194,18 @@ help() {
     echo
     echo "We can choose a layer and rotate it either clockwise (cw) or counterclockwise (ccw)."
     echo 'For example, we choose layer `a` and rotate it clockwise, we can input `acw`.'
-    echo "  a 10              a 01    "
-    echo ' b 00 00   `acw`   b 00 00  '
+    echo "   a                 a      "
+    echo "  b 10              b 01    "
+    echo '   00 00   `acw`     00 00  '
     echo "  c  00   ------->  c  00   "
     echo "    d  ef             d  ef "
     any_key
     echo
     echo "We also have two projections, to the back and right surfaces of the cube:"
     echo "  00            "
-    echo " 00             "
-    echo "    a 00    0   "
-    echo "   b 00 00 0  0 "
+    echo " 00  a          "
+    echo "    b 00    0   "
+    echo "     00 00 0  0 "
     echo "    c  00    0  "
     echo "      d  ef     "
     any_key
@@ -237,7 +244,6 @@ echo
 test $skip_help -eq 0 && help
 echo "Game Start."
 any_key
-echo
 
 start_time=$(date +%s)
 set_level
