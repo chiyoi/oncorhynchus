@@ -1,3 +1,4 @@
+#!/usr/bin/env sh
 usage() {
     echo "scripts:"
     echo "scripts.sh install"
