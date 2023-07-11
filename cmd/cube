@@ -1,4 +1,13 @@
 #!/usr/bin/env sh
+usage() {
+    welcome
+    echo
+    echo "Usage: cube [-level|-l <level>] [-skip-help|-s]"
+    echo "Options:"
+    echo "    -level, -l     - Choose level. (default: 0)"
+    echo "    -skip-help, -s - Skip displaying help messages."
+}
+
 board=""
 
 answer="00000000"
@@ -139,12 +148,17 @@ check_state() {
     fi
 }
 
-help() {
-    any_key() {
-        echo "Continue...\c"
-        read
-    }
+any_key() {
+    echo "Continue...\c"
+    read
+}
 
+welcome() {
+    echo "Cube: Match The Projection of The Cube."
+    echo "Implemented the logic of one of the little games in Star Rail."
+}
+
+help() {
     echo "We have a cube consists of 8 blocks:"
     echo "  00   "
     echo " 00 00 "
@@ -192,23 +206,32 @@ help() {
     echo "Our goal is to match the cube with its projection."
 }
 
+case "$1" in
+-h|-help|--help)
+usage
+exit
+;;
+esac
+
 while test $# -gt 0; do
-if test $1 = -level; then
+case $1 in
+-l|-level|--level)
 level=$2
 shift
-elif test $1 = -skip-help; then
+;;
+-s|-skip-help|--skip-help)
 skip_help=1
-fi
+;;
+*)
+echo "Unknown option: $1"
+usage
+exit 1
+;;
+esac
 shift
 done
 
-any_key() {
-    echo "Continue...\c"
-    read
-}
-
-echo "Cube: Match The Projection of The Cube."
-echo "Implemented the logic of one of the little games in Star Rail."
+welcome
 any_key
 echo
 test $skip_help -eq 0 && help
