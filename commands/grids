@@ -2,9 +2,10 @@
 usage() {
     welcome
     echo
-    echo "Usage: grids [-tips|-t]"
+    echo "Usage: grids [-level|-l <level>] [-tips|-t]"
     echo "Options:"
     echo "    -tips, -t  - Show the game tips."
+    echo "    -level, -l - Choose level. (levels: 0, 1) (default: 0)"
 }
 
 grids="000000000"
@@ -18,6 +19,9 @@ level=0
 
 set_level() {
     case $level in
+    1)
+    grids="000010000"
+    ;;
     *)
     grids="100000000"
     ;;
@@ -25,16 +29,18 @@ set_level() {
 }
 
 show_board() {
-    cub() {
-        # cut board
+    cug() {
+        # cut grids
         # $1: position
-        echo $board | cut -c$1
+        echo $grids | cut -c$1
     }
 
+    echo
     echo "  abc"
-    echo "1 $(cub '1-3')"
-    echo "2 $(cub '4-6')"
-    echo "3 $(cub '7-9')"
+    echo "1 $(cug '1-3')"
+    echo "2 $(cug '4-6')"
+    echo "3 $(cug '7-9')"
+    echo
 }
 
 get_input() {
@@ -51,19 +57,21 @@ get_input() {
 
     read_input
     err_count=0
-    while test -z "$(cui 1 | grep -Ex '[abc]')" || test -z "$(cui 2 | grep -Ex '[123]')"; do
+    while test -z "$(cui 1 | grep -Ex '[123]')" || test -z "$(cui 2 | grep -Ex '[abc]')"; do
+    err_count=$(expr $err_count + 1)
     echo "Unrecognized input: $inp"
     case $err_count in
-    0)
-    echo 'You can choose a grid with the row id combined with the column id, like `a1`.'
-    ;;
     1)
-    echo '` (Backtick) is not part of the input.'
+    echo 'We can choose a grid with the row id combined with the column id, like `1a`.'
     ;;
     2)
-    echo "You can hit <ctrl-c> to exit."
+    echo '` (Backtick) is not part of the input.'
+    ;;
+    3)
+    echo "We can hit <ctrl-c> to exit."
     ;;
     *)
+    echo "Too much errors."
     exit 1
     ;;
     esac
@@ -78,105 +86,46 @@ get_input() {
         echo 0
         ;;
         b)
-        echo 2
+        echo 1
         ;;
         c)
-        echo 3
+        echo 2
         ;;
         esac
     }
 
-    toggle() {
-        # $1: bit
-        
-    }
-
-    pos=$(expr $(cui 2) + $(cti $(cui 1)) '*' 3)
+    ro=$(expr $(cui 1) - 1)
+    co=$(cti $(cui 2))
 
     old_grids=$grids
+    cuo_offset() {
+        # cut old_grids
+        # $1: 0-indexed position
+        echo $old_grids | cut -c $(expr $1 + 1)
+    }
+
     grids=""
-    i=0
-    while test $(expr $i < 9) -eq 1; do
-    case $i in
-    $pos|$(expr $pos - 1)|$(expr $pos + 1)|$(expr $pos - 3)|$(expr $pos + 3))
-    grids+=$(expr ! )
+    for i in 0 1 2 3 4 5 6 7 8; do
+    rcu=$(expr $i / 3)
+    ccu=$(expr $i % 3)
+    case $rcu$ccu in
+    $ro$co|$(expr $ro + 1)$co|$(expr $ro - 1)$co|$ro$(expr $co + 1)|$ro$(expr $co - 1))
+    grids+=$(expr 1 - $(cuo_offset $i))
+    ;;
+    *)
+    grids+=$(cuo_offset $i)
     ;;
     esac
-
-    steps=$(expr $steps + 1)
-}
-
-# working
-turn() {
-    tu=${board:$1:1}
-    if test $tu -eq 0; then
-        board=${board:0:$1}1${board:$(expr $1 + 1):9}
-    else
-        board=${board:0:$1}0${board:$(expr $1 + 1):9}
-    fi
-}
-
-update() {
-    display
-    getCommand
-    steps=$(expr $steps + 1)
-    turn $chosen
-    if test $(expr $p0 - 1) -ge 0; then
-        turn $(expr $chosen - 1)
-    fi
-    if test $(expr $p0 + 1) -le 2; then
-        turn $(expr $chosen + 1)
-    fi
-    if test $(expr $p1 - 1) -ge 0; then
-        turn $(expr $chosen - 3)
-    fi
-    if test $(expr $p1 + 1) -le 2; then
-        turn $(expr $chosen + 3)
-    fi
-    test -z $(echo $board | sed 's/0//g') && clear=true
-}
-
-getCommand() {
-    errorCount=0
-    while :; do
-        echo -n "Command: "; read input
-        if test -z $input; then
-            continue
-        fi
-        case ${input:0:1} in
-            a) p0=0 ;;
-            b) p0=1 ;;
-            c) p0=2 ;;
-            *) p0=-1
-        esac
-        p1=$(expr ${input:1:1} - 1 2>/dev/null)
-        if test $? -eq 2 -o $p1 -gt 3; then
-            p1=-1
-        fi
-        if test $p0 -eq -1 -o $p1 -eq -1; then
-            if test $errorCount -eq 0; then
-                echo
-                echo 'You can choose a grid with the row id combined with the column id, like `a1`.'
-                echo
-            elif test $errorCount -eq 1; then
-                echo
-                echo "Can you hear me?"
-                echo
-            elif test $errorCount -eq 2; then
-                echo
-                echo "If you don't want to play anymore, just type ctrl-c"
-                echo
-            else
-                exit 1
-            fi
-            errorCount=$(expr $errorCount + 1)
-            continue
-        fi
-        break
     done
-    chosen=$(expr $p0 + $p1 '*' 3)
+
+    steps=$(expr $steps + 1)
 }
-# end working
+
+check_state() {
+    if test $grids = "000000000"; then
+    over=true
+    fi
+}
 
 any_key() {
     echo "Continue...\c"
@@ -185,31 +134,36 @@ any_key() {
 
 welcome() {
     echo "Grids: Clear all grids."
-    echo "Principle is not originated."
+    echo "Idea comes from a game that I forgot the name."
 }
 
 tips() {
+    echo "----"
+    echo "Tips"
+    echo
     echo "We have a square with 3*3 grids:"
-    echo "100"
+    echo "000"
     echo "000"
     echo "000"
     any_key
     echo
-    echo "We can indicate each row with a letter and each column with a digit:"
+    echo "We can indicate each row with a digit and each column with a letter:"
     echo "  abc"
-    echo "1 100"
+    echo "1 000"
     echo "2 000"
     echo "3 000"
     any_key
     echo
-    echo 'You can choose a grid with the row id combined with the column id, like `a1`:'
+    echo 'We can choose a grid with the row id combined with the column id, like `1a`:'
     echo "  abc           abc"
-    echo '1 100  `a1`   1 010'
+    echo '1 100  `1a`   1 010'
     echo "2 000 ------> 2 100"
     echo "3 000         3 000"
     any_key
     echo
     echo "Our goal is to make all grids 0."
+    any_key
+    echo "----"
 }
 
 case $1 in
@@ -221,6 +175,10 @@ esac
 
 while test $# -gt 0; do
 case $1 in
+-l|-level)
+level=$2
+shift
+;;
 -t|-tips)
 show_tips=true
 ;;
@@ -230,14 +188,15 @@ usage
 exit 1
 ;;
 esac
+shift
+done
 
 welcome
 any_key
-echo
 $show_tips && tips
+echo
 echo "Game start."
 any_key
-echo
 
 set_level
 start_time=$(date +%s)
