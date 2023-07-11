@@ -1,16 +1,112 @@
-#!/bin/zsh
-
-clear=false
-board="000000000"
-chosen=0
-steps=0
-timestamp=0
-
-init() {
-    board="100000000"
-    timestamp=$(date +%s)
+#!/usr/bin/env sh
+usage() {
+    welcome
+    echo
+    echo "Usage: grids [-tips|-t]"
+    echo "Options:"
+    echo "    -tips, -t  - Show the game tips."
 }
 
+grids="000000000"
+
+steps=0
+start_time=0
+over=false
+
+show_tips=false
+level=0
+
+set_level() {
+    case $level in
+    *)
+    grids="100000000"
+    ;;
+    esac
+}
+
+show_board() {
+    cub() {
+        # cut board
+        # $1: position
+        echo $board | cut -c$1
+    }
+
+    echo "  abc"
+    echo "1 $(cub '1-3')"
+    echo "2 $(cub '4-6')"
+    echo "3 $(cub '7-9')"
+}
+
+get_input() {
+    read_input() {
+        echo "Input: \c"
+        read inp
+    }
+
+    cui() {
+        # cut input
+        # $1: position
+        echo $inp | cut -c$1
+    }
+
+    read_input
+    err_count=0
+    while test -z "$(cui 1 | grep -Ex '[abc]')" || test -z "$(cui 2 | grep -Ex '[123]')"; do
+    echo "Unrecognized input: $inp"
+    case $err_count in
+    0)
+    echo 'You can choose a grid with the row id combined with the column id, like `a1`.'
+    ;;
+    1)
+    echo '` (Backtick) is not part of the input.'
+    ;;
+    2)
+    echo "You can hit <ctrl-c> to exit."
+    ;;
+    *)
+    exit 1
+    ;;
+    esac
+    read_input
+    done
+
+    cti() {
+        # character to index
+        # $1: character
+        case $1 in
+        a)
+        echo 0
+        ;;
+        b)
+        echo 2
+        ;;
+        c)
+        echo 3
+        ;;
+        esac
+    }
+
+    toggle() {
+        # $1: bit
+        
+    }
+
+    pos=$(expr $(cui 2) + $(cti $(cui 1)) '*' 3)
+
+    old_grids=$grids
+    grids=""
+    i=0
+    while test $(expr $i < 9) -eq 1; do
+    case $i in
+    $pos|$(expr $pos - 1)|$(expr $pos + 1)|$(expr $pos - 3)|$(expr $pos + 3))
+    grids+=$(expr ! )
+    ;;
+    esac
+
+    steps=$(expr $steps + 1)
+}
+
+# working
 turn() {
     tu=${board:$1:1}
     if test $tu -eq 0; then
@@ -18,18 +114,6 @@ turn() {
     else
         board=${board:0:$1}0${board:$(expr $1 + 1):9}
     fi
-}
-
-display() {
-    echo
-    echo "**abc"
-    for i in 0 1 2; do
-        echo -n "$(expr $i + 1)*"
-        for j in 0 1 2; do
-            echo -n "${board:$(expr $i '*' 3 + $j):1}"
-        done
-        echo
-    done
 }
 
 update() {
@@ -72,7 +156,7 @@ getCommand() {
         if test $p0 -eq -1 -o $p1 -eq -1; then
             if test $errorCount -eq 0; then
                 echo
-                echo "You can send a command to a certain grid, like a1 to the top left one."
+                echo 'You can choose a grid with the row id combined with the column id, like `a1`.'
                 echo
             elif test $errorCount -eq 1; then
                 echo
@@ -92,33 +176,78 @@ getCommand() {
     done
     chosen=$(expr $p0 + $p1 '*' 3)
 }
+# end working
 
-echo "Welcome."
-echo 
-echo "Summary: There're 3*3 grids, each has two states, showing 0 or 1. Like this:"
-echo "100\n000\n000"
-sleep 2
+any_key() {
+    echo "Continue...\c"
+    read
+}
+
+welcome() {
+    echo "Grids: Clear all grids."
+    echo "Principle is not originated."
+}
+
+tips() {
+    echo "We have a square with 3*3 grids:"
+    echo "100"
+    echo "000"
+    echo "000"
+    any_key
+    echo
+    echo "We can indicate each row with a letter and each column with a digit:"
+    echo "  abc"
+    echo "1 100"
+    echo "2 000"
+    echo "3 000"
+    any_key
+    echo
+    echo 'You can choose a grid with the row id combined with the column id, like `a1`:'
+    echo "  abc           abc"
+    echo '1 100  `a1`   1 010'
+    echo "2 000 ------> 2 100"
+    echo "3 000         3 000"
+    any_key
+    echo
+    echo "Our goal is to make all grids 0."
+}
+
+case $1 in
+-h|-help|--help)
+usage
+exit
+;;
+esac
+
+while test $# -gt 0; do
+case $1 in
+-t|-tips)
+show_tips=true
+;;
+*)
+echo "Unknown option: $1"
+usage
+exit 1
+;;
+esac
+
+welcome
+any_key
 echo
-echo "Control method: We use a, b, c to call the rows and 1, 2, 3 to columns. Like this:"
-echo "**abc\n1*100\n2*000\n3*000"
-echo "In each step, you can send a command to a certain grid, like a1 to the top left one."
-echo "Each of your command will cause some change."
-sleep 3
-echo
-echo "Goal: make all grids 0."
-sleep 2
-echo
-echo
-echo -n "Ready? "; read
+$show_tips && tips
 echo "Game start."
+any_key
 echo
-init
-while ! $clear; do
-    update
+
+set_level
+start_time=$(date +%s)
+show_board
+while ! $over; do
+get_input
+show_board
+check_state
 done
-echo
-echo "You did it."
-echo
-now=$(date +%s)
-echo "time: $(expr $now - $timestamp)s"
-echo "steps: $steps"
+
+echo "Passed."
+echo "Steps: $steps"
+echo "Time: $(expr $(date +%s) - $start_time)s"
