@@ -32,42 +32,37 @@ set_level() {
     esac
 }
 
-show_board() {
-    cuc() {
-        # cut cube
-        # $1: position
-        echo $cube | cut -c$1
-    }
-    
-    cup() {
-        # cut proj
-        # $1: position
-        echo $answer | cut -c$1
-    }
-    
-    bit_or() {
-        # $1: arg1
-        # $2: arg2
-        expr $1 '|' $2
-    }
+ec() {
+    # echo cut
+    # $1: string
+    # $2: position
+    echo $1 | cut -c$2
+}
 
+show_board() {
+    or() {
+        # $1: 1st number
+        # $2: 2nd number
+        expr $1 "|" $2
+    }
     proj=''
-    proj+=$(bit_or $(cuc 1) $(cuc 3))
-    proj+=$(bit_or $(cuc 2) $(cuc 4))
-    proj+=$(bit_or $(cuc 5) $(cuc 7))
-    proj+=$(bit_or $(cuc 6) $(cuc 8))
-    proj+=$(bit_or $(cuc 1) $(cuc 2))
-    proj+=$(bit_or $(cuc 3) $(cuc 4))
-    proj+=$(bit_or $(cuc 5) $(cuc 6))
-    proj+=$(bit_or $(cuc 7) $(cuc 8))
+    proj+=$(or $(ec $cube 1) $(ec $cube 3))
+    proj+=$(or $(ec $cube 2) $(ec $cube 4))
+    proj+=$(or $(ec $cube 5) $(ec $cube 7))
+    proj+=$(or $(ec $cube 6) $(ec $cube 8))
+    proj+=$(or $(ec $cube 1) $(ec $cube 2))
+    proj+=$(or $(ec $cube 3) $(ec $cube 4))
+    proj+=$(or $(ec $cube 5) $(ec $cube 6))
+    proj+=$(or $(ec $cube 7) $(ec $cube 8))
 
     echo
-    echo "  $(cup '1-2')            "
-    echo " $(cup '3-4')  a          "
-    echo "    b $(cuc '1-2')    $(cup 5)   "
-    echo "     $(cuc '5-6') $(cuc '3-4') $(cuc 7)  $(cup 6) "
-    echo "    c  $(cuc '7-8')    $(cup 8)  "
-    echo "      d  ef   "
+    echo "  $(ec $answer "1-2")               "
+    echo " $(ec $answer "3-4") $(ec $proj "1-2")             "
+    echo "   $(ec $proj "3-4") a            "
+    echo "     b  $(ec $cube "1-2")    $(ec $proj 5)$(ec $answer 5)   "
+    echo "       $(ec $cube "5-6") $(ec $cube "3-4") $(ec $proj 7)$(ec $answer 7) $(ec $proj 6)$(ec $answer 6) "
+    echo "      c  $(ec $cube "7-8")    $(ec $proj 8)$(ec $answer 8)  "
+    echo "        d  ef      "
     echo
 }
 
@@ -79,13 +74,13 @@ get_input() {
 
     read_input
     err_count=0
-    while test -z "$(echo $inp | cut -c1 | grep -Ex '[abcdef]')" || test -z "$(echo $inp | cut -c2-4 | grep -Ex 'cw|ccw')"; do
+    while test -z "$(ec $inp 1 | grep -Ex '[abcdef]')" || test -z "$(ec $inp "2-4" | grep -Ex "cw|ccw")"; do
     err_count=$(expr $err_count + 1)
     echo "Unrecognized input: $inp"
     case $err_count in
     1)
     echo "We can choose a layer and rotate it either clockwise (cw) or counterclockwise (ccw)."
-    echo 'For example, we choose layer `a` and rotate it clockwise, we can input `acw`.'
+    echo 'For example, we choose layer `a` and rotate it clockwise, the input is `acw`.'
     ;;
     2)
     echo '` (Backtick) is not part of the input.'
@@ -101,54 +96,46 @@ get_input() {
     read_input
     done
 
-    layer=$(echo $inp | cut -c1)
-    dir=$(echo $inp | cut -c2-4)
-
-    cuc() {
-        # cut cube
-        # $1: position
-        echo $cube | cut -c$1
-    }
-    
+    layer=$(ec $inp 1)
     is_cw() {
-        test $dir = cw
+        test $(ec $inp "2-4") = cw
     }
 
     if test $layer = a; then
     if is_cw; then
-    cube=$(cuc 3)$(cuc 1)$(cuc 4)$(cuc 2)$(cuc '5-8')
+    cube=$(ec $cube 3)$(ec $cube 1)$(ec $cube 4)$(ec $cube 2)$(ec $cube '5-8')
     else
-    cube=$(cuc 2)$(cuc 4)$(cuc 1)$(cuc 3)$(cuc '5-8')
+    cube=$(ec $cube 2)$(ec $cube 4)$(ec $cube 1)$(ec $cube 3)$(ec $cube '5-8')
     fi
     elif test $layer = b; then
     if is_cw; then
-    cube=$(cuc '1-4')$(cuc 7)$(cuc 5)$(cuc 8)$(cuc 6)
+    cube=$(ec $cube "1-4")$(ec $cube 7)$(ec $cube 5)$(ec $cube 8)$(ec $cube 6)
     else
-    cube=$(cuc '1-4')$(cuc 6)$(cuc 8)$(cuc 5)$(cuc 7)
+    cube=$(ec $cube "1-4")$(ec $cube 6)$(ec $cube 8)$(ec $cube 5)$(ec $cube 7)
     fi
     elif test $layer = c; then
     if is_cw; then
-    cube=$(cuc 5)$(cuc 1)$(cuc '3-4')$(cuc 6)$(cuc 2)$(cuc '7-8')
+    cube=$(ec $cube 5)$(ec $cube 1)$(ec $cube "3-4")$(ec $cube 6)$(ec $cube 2)$(ec $cube "7-8")
     else
-    cube=$(cuc 2)$(cuc 6)$(cuc '3-4')$(cuc 1)$(cuc 5)$(cuc '7-8')
+    cube=$(ec $cube 2)$(ec $cube 6)$(ec $cube "3-4")$(ec $cube 1)$(ec $cube 5)$(ec $cube "7-8")
     fi
     elif test $layer = d; then
     if is_cw; then
-    cube=$(cuc '1-2')$(cuc 7)$(cuc 3)$(cuc '5-6')$(cuc 8)$(cuc 4)
+    cube=$(ec $cube "1-2")$(ec $cube 7)$(ec $cube 3)$(ec $cube "5-6")$(ec $cube 8)$(ec $cube 4)
     else
-    cube=$(cuc '1-2')$(cuc 4)$(cuc 8)$(cuc '5-6')$(cuc 3)$(cuc 7)
+    cube=$(ec $cube "1-2")$(ec $cube 4)$(ec $cube 8)$(ec $cube "5-6")$(ec $cube 3)$(ec $cube 7)
     fi
     elif test $layer = e; then
     if is_cw; then
-    cube=$(cuc 5)$(cuc 2)$(cuc 1)$(cuc 4)$(cuc 7)$(cuc 6)$(cuc 3)$(cuc 8)
+    cube=$(ec $cube 5)$(ec $cube 2)$(ec $cube 1)$(ec $cube 4)$(ec $cube 7)$(ec $cube 6)$(ec $cube 3)$(ec $cube 8)
     else
-    cube=$(cuc 3)$(cuc 2)$(cuc 7)$(cuc 4)$(cuc 1)$(cuc 6)$(cuc 5)$(cuc 8)
+    cube=$(ec $cube 3)$(ec $cube 2)$(ec $cube 7)$(ec $cube 4)$(ec $cube 1)$(ec $cube 6)$(ec $cube 5)$(ec $cube 8)
     fi
     elif test $layer = f; then
     if is_cw; then
-    cube=$(cuc 1)$(cuc 6)$(cuc 3)$(cuc 2)$(cuc 5)$(cuc 8)$(cuc 7)$(cuc 4)
+    cube=$(ec $cube 1)$(ec $cube 6)$(ec $cube 3)$(ec $cube 2)$(ec $cube 5)$(ec $cube 8)$(ec $cube 7)$(ec $cube 4)
     else
-    cube=$(cuc 1)$(cuc 4)$(cuc 3)$(cuc 8)$(cuc 5)$(cuc 2)$(cuc 7)$(cuc 6)
+    cube=$(ec $cube 1)$(ec $cube 4)$(ec $cube 3)$(ec $cube 8)$(ec $cube 5)$(ec $cube 2)$(ec $cube 7)$(ec $cube 6)
     fi
     fi
 
@@ -206,7 +193,7 @@ tips() {
     any_key
     echo
     echo "We can choose a layer and rotate it either clockwise (cw) or counterclockwise (ccw)."
-    echo 'For example, we choose layer `a` and rotate it clockwise, we can input `acw`.'
+    echo 'For example, we choose layer `a` and rotate it clockwise, the input is `acw`.'
     echo "   a                 a      "
     echo '  b 10     `acw`    b 01    '
     echo "   00 00  ------->   00 00  "
@@ -214,16 +201,27 @@ tips() {
     echo "    d  ef             d  ef "
     any_key
     echo
-    echo "We also have two projections, to the back and right surfaces of the cube:"
-    echo "  00            "
-    echo " 00  a          "
-    echo "    b 00    0   "
-    echo "     00 00 0  0 "
-    echo "    c  00    0  "
-    echo "      d  ef     "
+    echo "We also have two *eventual* projections, to the back and right surfaces of the cube:"
+    echo "  00               "
+    echo " 00                "
+    echo "      a            "
+    echo "     b  00     0   "
+    echo "       00 00  0  0 "
+    echo "      c  00     0  "
+    echo "        d  ef      "
     any_key
     echo
-    echo "Our goal is to match the cube with its projection."
+    echo "The *current* projection is also displayed for our convince:"
+    echo "  00               "
+    echo " 00 00             "
+    echo "   00 a            "
+    echo "     b  00    00   "
+    echo "       00 00 00 00 "
+    echo "      c  00    00  "
+    echo "        d  ef      "
+    any_key
+    echo
+    echo "Our goal is to match the cube with its *eventual* projection."
     any_key
     echo "----"
 }
