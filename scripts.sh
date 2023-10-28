@@ -1,9 +1,11 @@
-#!/usr/bin/env sh
+#!/bin/sh
+cd $(dirname $(realpath $0))
 usage() {
+    pwd
     echo "scripts:"
-    echo "scripts.sh install"
+    echo "$0 install"
     echo "    Install the commands."
-    echo "scripts.sh path"
+    echo "$0 path"
     echo "    Show path to the directory where the commands installed."
 }
 
